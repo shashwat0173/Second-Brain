@@ -16,7 +16,7 @@ const signupSchema = z.object({
   username: z
     .string()
     .min(3, "Username must be at least 3 characters")
-    .max(30, "Username must be less than 30 characters")
+    .max(30, "Username must be less than or 30 characters")
     .regex(
       /^[a-zA-Z0-9_]+$/,
       "Username can only contain letters, numbers, and underscores"
@@ -27,11 +27,21 @@ const signupSchema = z.object({
     .max(128, "Password must be less than 128 characters"),
 });
 
+const signinSchema = z.object({
+  username: z
+    .string()
+    .min(3, "Username of size atleast 3 is required")
+    .max(30, "Username size must not exceed 30 characters"),
+  password: z
+    .string()
+    .min(1, "Password is required")
+    .max(128, "Password must be less than 128 characters"),
+});
+
 app.post("/api/v1/signup", async (req, res) => {
   try {
     console.log("Signup request received");
 
-    // Input validation with Zod
     const validationResult = signupSchema.safeParse(req.body);
 
     if (!validationResult.success) {
@@ -43,7 +53,6 @@ app.post("/api/v1/signup", async (req, res) => {
 
     const { username, password } = validationResult.data;
 
-    // Check if user already exists
     const existingUser = await UserModel.findOne({ username });
     if (existingUser) {
       return res.status(409).json({
@@ -51,18 +60,15 @@ app.post("/api/v1/signup", async (req, res) => {
       });
     }
 
-    // Hash the password with salt rounds
     const saltRounds = 12;
     const hashedPassword = await bcrypt.hash(password, saltRounds);
 
-    // Create user with hashed password
     const newUser = await UserModel.create({
       username,
       hashedPassword: hashedPassword,
       createdAt: new Date(),
     });
 
-    // Return success response (don't include sensitive data)
     return res.status(201).json({
       message: "User created successfully",
     });
@@ -76,7 +82,59 @@ app.post("/api/v1/signup", async (req, res) => {
   }
 });
 
-app.post("/api/v1/signin", (req, res) => {});
+app.post("/api/v1/signin", async (req, res) => {
+  try {
+    console.log("Signin request received");
+
+    // Input validation with Zod
+    const validationResult = signinSchema.safeParse(req.body);
+    if (!validationResult.success) {
+      return res.status(400).json({
+        message: "Username and password are required",
+      });
+    }
+
+    const { username, password } = validationResult.data;
+
+    const user = await UserModel.findOne({ username });
+    if (!user) {
+      return res.status(401).json({
+        message: "Invalid username or password",
+      });
+    }
+
+    const isPasswordValid = await bcrypt.compare(
+      password,
+      user.hashedPassword as string
+    );
+    if (!isPasswordValid) {
+      return res.status(401).json({
+        message: "Invalid username or password",
+      });
+    }
+
+    const token = jwt.sign(
+      {
+        userId: user._id,
+        username: user.username,
+      },
+      process.env.JWT_SECRET as string,
+      {
+        expiresIn: "24h",
+      }
+    );
+
+    return res.status(200).json({
+      message: "Signin successful",
+      token: token,
+    });
+  } catch (err) {
+    console.error("Signin error:", err);
+    return res.status(500).json({
+      message: "Internal server error",
+    });
+  }
+});
 
 app.post("/api/v1/content", (req, res) => {});
 
