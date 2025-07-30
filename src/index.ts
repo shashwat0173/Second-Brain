@@ -160,9 +160,43 @@ app.post("/api/v1/content", userMiddleware, (req, res) => {
   }
 });
 
-app.get("/api/v1/content", (req, res) => {});
+app.get("/api/v1/content", userMiddleware, async (req, res) => {
+  try {
+    // @ts-ignore
+    const userId = req.userId;
+    const content = await ContentModel.find({
+      userId: userId,
+    }).populate("userId", "username");
 
-app.delete("/api/v1/content", (req, res) => {});
+    return res.json({
+      content,
+    });
+  } catch (err) {
+    console.log("Content add error", err);
+    return res.status(500).json({
+      message: "Internal server error",
+    });
+  }
+});
+
+app.delete("/api/v1/content", userMiddleware, async (req, res) => {
+  try {
+    const contentId = req.body.contentId;
+    await ContentModel.deleteMany({
+      contentId,
+      //@ts-ignore
+      userId: req.userId,
+    });
+    return res.json({
+      message: "Deleted content",
+    });
+  } catch (err) {
+    console.log("Delete content failed", err);
+    return res.status(500).json({
+      message: "Internal server error",
+    });
+  }
+});
 
 app.post("/api/v1/brain/share", (req, res) => {});
 
@@ -170,7 +204,7 @@ app.get("/api/v1/brain/:shareLink", (req, res) => {});
 
 const startServer = async () => {
   try {
-    await connectDB();
+    await connectDB(); // connecting to db before starting server.
     app.listen(3000, () => {
       console.log("Server running on port 3000");
     });
