@@ -6,7 +6,8 @@ import { z } from "zod";
 
 dotenv.config();
 
-import { connectDB, UserModel } from "./db";
+import { connectDB, ContentModel, UserModel } from "./db";
+import { userMiddleware } from "./middleware";
 
 const app = express();
 
@@ -136,7 +137,28 @@ app.post("/api/v1/signin", async (req, res) => {
   }
 });
 
-app.post("/api/v1/content", (req, res) => {});
+app.post("/api/v1/content", userMiddleware, (req, res) => {
+  try {
+    const link = req.body.link;
+    const type = req.body.type;
+    ContentModel.create({
+      link,
+      type,
+      //@ts-ignore
+      userId: req.userId, // ts-ignoring is fine here
+      tags: [],
+    });
+
+    return res.json({
+      message: "Content added",
+    });
+  } catch (err) {
+    console.log("Content add error", err);
+    return res.status(500).json({
+      message: "Internal server error",
+    });
+  }
+});
 
 app.get("/api/v1/content", (req, res) => {});
 
