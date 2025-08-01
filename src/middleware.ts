@@ -1,5 +1,5 @@
 import { NextFunction, Request, Response } from "express";
-import jwt from "jsonwebtoken";
+import jwt, { JwtPayload } from "jsonwebtoken";
 
 export const userMiddleware = (
   req: Request,
@@ -19,9 +19,7 @@ export const userMiddleware = (
       );
 
       if (decoded) {
-        // not ideal but for now its fine.
-        //@ts-ignore
-        req.userId = decoded.userId;
+        req.userId = (decoded as JwtPayload).id;
       }
 
       next();
