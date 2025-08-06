@@ -2,6 +2,7 @@ import express from "express";
 import jwt from "jsonwebtoken";
 import dotenv from "dotenv";
 import bcrypt from "bcrypt";
+import cors from "cors";
 import { z } from "zod";
 
 dotenv.config();
@@ -12,6 +13,7 @@ import { random } from "./utils";
 
 const app = express();
 
+app.use(cors());
 app.use(express.json());
 
 const signupSchema = z.object({
@@ -140,6 +142,7 @@ app.post("/api/v1/signin", async (req, res) => {
 
 app.post("/api/v1/content", userMiddleware, (req, res) => {
   try {
+    console.log("BABA YAGA");
     const title = req.body.title;
     const link = req.body.link;
     const type = req.body.type;
@@ -147,8 +150,7 @@ app.post("/api/v1/content", userMiddleware, (req, res) => {
       title,
       link,
       type,
-      //@ts-ignore
-      userId: req.userId, // ts-ignoring is fine here
+      userId: req.userId,
       tags: [],
     });
 

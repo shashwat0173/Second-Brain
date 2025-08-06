@@ -18,8 +18,10 @@ export const userMiddleware = (
         process.env.JWT_SECRET as string
       );
 
+      console.log("Decoded JWT:", decoded);
+
       if (decoded) {
-        req.userId = (decoded as JwtPayload).id;
+        req.userId = (decoded as JwtPayload).userId;
       }
 
       next();
